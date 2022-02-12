@@ -1,0 +1,199 @@
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
+import requests
+import pandas as pd
+
+
+r = requests.get('https://www.century21global.com/for-sale-residential/Chile')
+content = r.content
+soup = BeautifulSoup(content)
+
+soup
+
+# price: <div class="search-result-label-primary price-native"><span dir="ltr"><span>84,900</span></span> UF</div>
+
+# price dollars: <div class="search-result-label-secondary price-user">$<span>3,313,757</span> USD</div>
+
+# addres:<span class="property-address" style="display:none">Lo Barnechea, Santiago</span>
+
+# size: <span class="search-result-label"> <div class="size">3,229 sq. ft. - 300 m<sup>2</sup></div></span>
+
+#coordinates: <input class="map-coordinates" type="hidden" data-bingid="3337002570565783" data-index="1" data-lat="-33.370025" data-lng="-70.565783">
+
+# rooms:<span class="search-result-label">8 bedrooms - 7 full baths,  2 half baths</span>
+
+# feautures inside links:<a class="search-result-info" href="/propertyDetails.action?id=120847224&amp;cu=USD&amp;sizeunit=sqft">
+
+#   <span class="search-result-label">6 bedrooms - 5 full baths,  1 half bath</span>
+#    </a>
+
+soup.findAll('div', attrs={'class':'search-result-label-primary price-native'})
+
+soup.findAll('div', attrs={'class':'search-result-label-secondary price-user'})
+
+soup.findAll('span', attrs={'class':'property-address'})
+
+soup.findAll('div', attrs={'class':'size'})
+
+soup.findAll('span', attrs={'class':'search-result-label'})
+
+soup.findAll('a',attrs={'class':'search-result-info'})
+
+# we create loops to work on the extraction
+price_uf=[]
+for i in soup.findAll('div', attrs={'class':'search-result-label-primary price-native'}):
+    if i.text is None:
+        #print('empty')
+        price_uf.append('.')
+    else:
+        #print(i.text)
+        price_uf.append(i.text)
+        
+price_usd=[]
+for i in soup.findAll('div', attrs={'class':'search-result-label-secondary price-user'}):
+    if i.text is None:
+        #print('empty')
+        price_usd.append('.')
+    else:
+        #print(i.text)
+        price_usd.append(i.text)  
+ address=[]
+for i in soup.findAll('span', attrs={'class':'property-address'}):
+    if i.text is None:
+        #print('empty')
+        address.append('.')
+    else:
+        #print(i.text)
+        address.append(i.text)
+
+meters=[]
+for i in soup.findAll('div', attrs={'class':'size'}):
+    if i.text is None:
+        #print('empty')
+        meters.append('.')
+    else:
+        #print(i.text)
+        meters.append(i.text)
+        
+ links=[]
+for i in soup.findAll('a',attrs={'class':'search-result-info'},href=True):
+    if i is None:
+        #print('empty')
+        links.append('.')
+    else:
+        #print('{link}'.format(link='https://www.century21global.com')+i['href'])
+        links.append('{link}'.format(link='https://www.century21global.com')+i['href'])   
+        
+ pd.DataFrame(list(zip(price_uf,price_usd,address,meters,links)))
+ 
+ def scrapping(url):
+    r = requests.get(url)
+    content = r.content
+    soup = BeautifulSoup(content)
+    
+    price_uf=[]
+    price_usd=[]
+    address=[]
+    meters=[]
+    links=[]
+    
+    for i in soup.findAll('div', attrs={'class':'search-result-label-primary price-native'}):
+        if i.text is None:
+            #print('empty')
+            price_uf.append('.')
+        else:
+            #print(i.text)
+            price_uf.append(i.text)
+        
+    for i in soup.findAll('div', attrs={'class':'search-result-label-secondary price-user'}):
+        if i.text is None:
+            #print('empty')
+            price_usd.append('.')
+        else:
+            #print(i.text)
+            price_usd.append(i.text)
+            
+        
+    for i in soup.findAll('span', attrs={'class':'property-address'}):
+        if i.text is None:
+            #print('empty')
+            address.append('.')
+        else:
+            #print(i.text)
+            address.append(i.text)
+    
+    
+    for i in soup.findAll('div', attrs={'class':'size'}):
+        if i.text is None:
+            #print('empty')
+            meters.append('.')
+        else:
+            #print(i.text)
+            meters.append(i.text)
+            
+    
+    for i in soup.findAll('a',attrs={'class':'search-result-info'},href=True):
+        if i is None:
+            #print('empty')
+            links.append('.')
+        else:
+            #print('{link}'.format(link='https://www.century21global.com')+i['href'])
+            links.append('{link}'.format(link='https://www.century21global.com')+i['href'])
+    
+    df=pd.DataFrame(list(zip(price_uf,price_usd,address,meters,links)))
+    
+    return df
+    
+    #<a href="/for-sale-residential/Chile?pageNo=5" class="btn btn-mini">5</a>
+#scrapping('https://www.century21global.com/for-sale-residential/Chile')
+scrapping('https://www.century21global.com/for-sale-residential/Chile?pageNo=1')
+
+# this scrapes data from the first 5pages displayed
+numberpages=5
+dfs=[]
+for j in range(1,numberpages+1):
+    url='https://www.century21global.com/for-sale-residential/Chile?pageNo='
+    u=url+'{numpage}'.format(numpage=j)
+    #print(u)
+    dfs.append(scrapping(u))
+
+dffinal=pd.concat(dfs)
+
+# this gives the data structure
+for i in dfs:
+    print(i.shape)
+    
+def wholescrap(numberpages,url):
+    dfs=[]
+    for j in range(1,numberpages+1):
+        #url='https://www.century21global.com/for-sale-residential/Chile?pageNo='
+        u=url+'{numpage}'.format(numpage=j)
+        #print(u)
+        dfs.append(scrapping(u))
+
+    dffinal=pd.concat(dfs)
+    
+    return dffinal
+    
+    # scraping content of the entire page
+wholescrap(103,'https://www.century21global.com/for-sale-residential/Chile?pageNo=')
+
+# convert data to xlsx
+def wholescrap(numberpages,url,path):
+    dfs=[]
+    for j in range(1,numberpages+1):
+        #url='https://www.century21global.com/for-sale-residential/Chile?pageNo='
+        u=url+'{numpage}'.format(numpage=j)
+        #print(u)
+        dfs.append(scrapping(u))
+
+    dffinal=pd.concat(dfs)
+    dffinal.to_excel(path+'/{file}.xlsx'.format(file='chile'))
+    return dffinal
+    
+    # save data to a path on local drive
+# indicate location by specifying the path
+path='C:/Users/asasi/Downloads/CHILEprojectDATA1--CENT21'
+wholescrap(103,'https://www.century21global.com/for-sale-residential/Chile?pageNo=',path)
+
+        
